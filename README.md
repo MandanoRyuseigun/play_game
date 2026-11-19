@@ -1,35 +1,28 @@
-# play_game
+# NoS リザルト保存ツール ＆ 戦歴ビューア
 
-## NoS 戦歴アーカイブ（GitHub Pages）
+Nebula on the Ship（Among Us MOD）のブラウザ版リザルト（戦歴ブラウザ）は、サーバーを抜けると見られなくなります。このツールを使うと、リザルトを自分のPCにファイルとして保存し、いつでも見返せます。
 
-Nebula on the Ship の戦歴リザルトを Web で公開するページです。左の一覧から試合を選ぶと、マップの再生も含めてブラウザで見られます。試合ごとのリンクも作れるので、X などに貼って共有できます。
+## ダウンロード
 
-- 公開ページ: `https://mandanoryuseigun.github.io/play_game/`（下の「最初の設定」が済むと開けます）
-- サンプル: `docs/matches/sample-match.html`（架空のダミーデータです。不要になったら削除してください）
+`nos-result-saver/dist/` の中のファイルを使います。GitHub でファイルを開き、右上の「Download raw file」ボタンで1つずつダウンロードできます。緑の「Code」→「Download ZIP」で、まとめてダウンロードすることもできます。
 
-### 最初の設定（1回だけ）
+| ファイル | 役割 |
+| --- | --- |
+| `install.html` | 保存ツール（ブックマークレット）の登録ページ。開いて、手順どおりにブックマークへ登録します |
+| `nos-viewer.html` | 戦歴ビューア。保存したリザルトのファイルを読み込んで、一覧からまとめて見られます |
+| `nos-result-saver.user.js` | （任意）Tampermonkey 用。リザルトを開くだけで保存パネルが出ます |
 
-1. GitHub でこのリポジトリを開き、**Settings → Pages** を開きます。
-2. 「Build and deployment」の Source を **Deploy from a branch** にします。
-3. Branch で公開するブランチ（例: `main`）とフォルダ **`/docs`** を選び、Save を押します。
-4. 数分待つと、上の URL でページが開けるようになります。
-5. **Settings → Actions → General → Workflow permissions** を **Read and write permissions** にします（一覧の自動更新に必要です）。
+試しにビューアを使ってみたいときは、`nos-result-saver/sample/sample-match.html`（架空のダミーデータ）を読み込ませてください。
 
-### 試合を追加する
+## 使い方
 
-1. `nos-result-saver` のツールで、リザルトを「保存（操作できる版）」として保存します。
-2. GitHub でこのリポジトリの `docs/matches` フォルダを開き、**Add file → Upload files** で保存した HTML をアップロードして、Commit changes を押します。
-3. 自動で一覧（`docs/matches/matches.json`）が更新され、数分でページに反映されます。
+1. `install.html` を開き、「💾 NoSリザルト保存」をブックマークバーへドラッグします（初回のみ）。
+2. ゲーム中、サーバーを抜ける前に、リザルトを普通のブラウザ（Chrome / Edge / Firefox）で開きます。
+3. ブックマークの「💾 NoSリザルト保存」→「保存（操作できる版）」を押すと、HTML ファイルがダウンロードされます。
+4. `nos-viewer.html` を開き、保存したファイルをドラッグ＆ドロップ（またはフォルダごと選択）します。左に試合一覧が出て、選んだ試合をマップ再生つきで見られます。
 
-一覧に表示される名前やメモを変えたいときは、`docs/matches/matches.json` の該当する試合の `title` や `note` を書き換えてください。書き換えた内容は、そのあと自動更新が走っても残ります。
+- 読み込んだ試合はブラウザ内に記憶され、次にビューアを開いたときも一覧に出ます。
+- 試合のファイルがどこかへ送られることはありません。すべて自分のPCの中で完結します。
+- 保存したファイルは単体でもダブルクリックで開けます。友達にファイルを渡せば、相手のビューアでも見られます。
 
-試合を消したいときは、`docs/matches` から HTML ファイルを削除すれば一覧からも消えます。
-
-### 公開前の注意
-
-- 保存ファイルには、リザルトに表示されるプレイヤー名や役職などがすべて含まれます。一緒に遊んだ人に公開してよいか確認してください。
-- 公開リポジトリなので、ファイルは誰でも見られます。削除しても履歴やコピーが残ることがあります。
-
-## nos-result-saver
-
-リザルトを保存するツールです。詳しくは [nos-result-saver/README.md](nos-result-saver/README.md) を見てください。
+詳しい仕組みや制限は [nos-result-saver/README.md](nos-result-saver/README.md) を見てください。

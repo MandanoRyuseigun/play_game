@@ -24,7 +24,7 @@
 </head>
 <body>
 <main>
-  <h1>NoS リザルト保存 <span class="note">v1.0.0</span></h1>
+  <h1>NoS リザルト保存 <span class="note">v1.1.0</span></h1>
   <p class="lead">Nebula on the Ship のブラウザ版リザルト（戦歴ブラウザ）を、サーバー退出後も開ける1つのHTMLファイルとして保存します。</p>
 
   <section>
@@ -55,6 +55,12 @@
     <h2>3.（任意）自動で記録したい場合：ユーザースクリプト版</h2>
     <p>Tampermonkey などの拡張機能を使っている場合は、<code>nos-result-saver.user.js</code> を導入すると、リザルトを開くだけで保存パネルが表示されます。ページを開いた瞬間からの通信内容（WebSocket含む）も記録するので、ブックマークレット版より再現性が高くなります。</p>
     <p class="note">localhost / 127.0.0.1 のページで動作します。</p>
+  </section>
+
+  <section>
+    <h2>4. 保存した試合をまとめて見る：戦歴ビューア</h2>
+    <p><code>nos-viewer.html</code> をダブルクリックで開き、保存したリザルトのファイルをドラッグ＆ドロップ（またはフォルダごと選択）すると、左に試合一覧が出て、選んだ試合をそのまま見られます。</p>
+    <p class="note">読み込んだ試合はブラウザ内に記憶され、次に開いたときも一覧に出ます。ファイルがどこかに送られることはありません。</p>
   </section>
 
   <section>

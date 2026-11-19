@@ -45,6 +45,8 @@ ${recorder}
   fs.writeFileSync(path.join(out, 'install.html'),
     tpl.replace(/__BOOKMARKLET_ATTR__/g, () => esc(bookmarklet)).replace(/__VERSION__/g, VERSION));
 
+  fs.copyFileSync(path.join(__dirname, 'viewer.html'), path.join(out, 'nos-viewer.html'));
+
   console.log('bookmarklet:', bookmarklet.length, 'chars');
   console.log('built ->', out);
 })();

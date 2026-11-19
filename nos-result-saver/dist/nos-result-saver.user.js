@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NoS リザルト保存
 // @namespace    nos-result-saver
-// @version      1.0.0
+// @version      1.1.0
 // @description  Nebula on the Ship のブラウザ版リザルト(戦歴)を、サーバー退出後も見られる1つのHTMLファイルとして保存します
 // @match        http://localhost/*
 // @match        http://127.0.0.1/*

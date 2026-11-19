@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoS 戦歴ビューア</title>
+<style>
+  :root {
+    --bg:#f4f4fa; --panel:#ffffff; --fg:#1b1d33; --sub:#5d6080; --line:#dcdcec;
+    --accent:#4b52b8; --accent-fg:#ffffff; --accent-soft:#e6e7fa; --hover:#f0f0fa; --danger:#c43c4c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0f1024; --panel:#181a36; --fg:#e8e9f7; --sub:#a0a3c6; --line:#2f3260;
+      --accent:#8c92ff; --accent-fg:#10112a; --accent-soft:#2a2d5e; --hover:#202348; --danger:#ff8a96;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0f1024; --panel:#181a36; --fg:#e8e9f7; --sub:#a0a3c6; --line:#2f3260;
+    --accent:#8c92ff; --accent-fg:#10112a; --accent-soft:#2a2d5e; --hover:#202348; --danger:#ff8a96;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.6 "Segoe UI","Yu Gothic UI","Hiragino Sans",Meiryo,sans-serif; display:flex; flex-direction:column; }
+  header { display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--line); background:var(--panel); flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; white-space:nowrap; }
+  header .count { color:var(--sub); font-size:12px; flex:1; }
+  .btn { font:inherit; font-size:13px; padding:5px 12px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--fg); cursor:pointer; text-decoration:none; white-space:nowrap; }
+  .btn:hover { border-color:var(--accent); }
+  .btn.primary { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); font-weight:600; }
+  .app { flex:1; display:flex; min-height:0; }
+  aside { width:300px; flex-shrink:0; border-right:1px solid var(--line); background:var(--panel); display:flex; flex-direction:column; min-height:0; }
+  .search { padding:10px; border-bottom:1px solid var(--line); }
+  .search input { width:100%; padding:7px 10px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--fg); font:inherit; }
+  .list { overflow:auto; flex:1; padding:6px; }
+  .day { font-size:12px; color:var(--sub); padding:10px 8px 4px; font-weight:bold; }
+  .row { display:flex; align-items:center; border-radius:7px; }
+  .row:hover { background:var(--hover); }
+  .row[aria-current="true"] { background:var(--accent-soft); }
+  .item { flex:1; min-width:0; text-align:left; border:none; background:none; color:inherit; font:inherit; padding:8px 10px; cursor:pointer; }
+  .item .t { font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item .m { font-size:12px; color:var(--sub); }
+  .del { border:none; background:none; color:var(--sub); cursor:pointer; font-size:16px; padding:4px 10px; visibility:hidden; }
+  .row:hover .del, .row[aria-current="true"] .del { visibility:visible; }
+  .del:hover { color:var(--danger); }
+  main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .bar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--line); background:var(--panel); flex-wrap:wrap; }
+  .bar .title { font-weight:600; flex:1; min-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar .title small { color:var(--sub); font-weight:normal; margin-left:6px; }
+  .back { display:none; }
+  iframe { flex:1; width:100%; border:0; background:#fff; }
+  .welcome { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .drop { max-width:520px; width:100%; text-align:center; border:2px dashed var(--line); border-radius:14px; padding:36px 24px; background:var(--panel); }
+  .drop h2 { margin:0 0 6px; font-size:18px; }
+  .drop p { color:var(--sub); margin:0 0 18px; }
+  .drop .btns { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .drop .small { font-size:12px; margin:16px 0 0; }
+  body.dragging .overlay { display:flex; }
+  .overlay { display:none; position:fixed; inset:0; background:rgba(75,82,184,.18); border:3px dashed var(--accent); z-index:10; align-items:center; justify-content:center; font-size:20px; font-weight:bold; color:var(--accent); pointer-events:none; }
+  .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--fg); color:var(--bg); padding:8px 16px; border-radius:8px; font-size:13px; z-index:11; max-width:calc(100% - 32px); }
+  .emptylist { color:var(--sub); font-size:13px; padding:16px 10px; }
+  @media (max-width: 760px) {
+    aside { width:100%; border-right:none; }
+    .app.viewing aside { display:none; }
+    .app:not(.viewing) main { display:none; }
+    .app.nolist aside { display:none; }
+    .app.nolist main { display:flex; }
+    .back { display:inline-block; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>NoS 戦歴ビューア</h1>
+  <span class="count" id="count"></span>
+  <button class="btn primary" id="addBtn">＋ ファイルを読み込む</button>
+</header>
+<div class="app nolist" id="app">
+  <aside id="aside" hidden>
+    <div class="search"><input id="q" type="search" placeholder="試合を検索（タイトル・日付）"></div>
+    <div class="list" id="list"></div>
+  </aside>
+  <main>
+    <div class="bar" id="bar" hidden>
+      <button class="btn back" id="back">← 一覧</button>
+      <div class="title" id="title"></div>
+      <button class="btn" id="openTab">新しいタブで開く</button>
+    </div>
+    <div class="welcome" id="welcome">
+      <div class="drop">
+        <h2>戦歴ファイルを読み込んでください</h2>
+        <p>保存ツールで保存したリザルトのファイル（.html）を、ここにドラッグ＆ドロップするか、下のボタンから選んでください。何試合分でもまとめて読み込めます。</p>
+        <div class="btns">
+          <button class="btn primary" id="pickFiles">ファイルを選ぶ</button>
+          <button class="btn" id="pickFolder">フォルダごと選ぶ</button>
+        </div>
+        <p class="small" id="storeNote">読み込んだ試合はこのブラウザ内に記憶され、次回も一覧に出ます。ファイルがどこかに送られることはありません。</p>
+      </div>
+    </div>
+    <div class="welcome" id="pick" hidden><p style="color:var(--sub)">左の一覧から試合を選んでください。</p></div>
+    <iframe id="frame" title="戦歴リザルト" hidden></iframe>
+  </main>
+</div>
+<input type="file" id="fileIn" accept=".html,.htm,text/html" multiple hidden>
+<input type="file" id="dirIn" webkitdirectory multiple hidden>
+<div class="overlay">ここにドロップして読み込む</div>
+<div class="toast" id="toast" hidden></div>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var app = $('app'), listEl = $('list'), frame = $('frame');
+  var matches = [];      // {id, name, title, date, size, kind, html}
+  var currentId = null, frameUrl = null;
+
+  // ---------- 小物 ----------
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function sizeText(n) { return n / 1048576 >= 1 ? (n / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(n / 1024)) + 'KB'; }
+  var toastTimer;
+  function toast(msg) { var t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 3500); }
+  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i += Math.max(1, (s.length / 4096) | 0)) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + '-' + s.length.toString(36); }
+
+  function parseMeta(name, html, lastModified) {
+    var head = html.slice(0, 4000);
+    var title = (/<title[^>]*>([^<]*)<\/title>/i.exec(html.slice(0, 3000000)) || [])[1];
+    title = title ? title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim() : '';
+    var m = /"savedAt":"(\d{4}-\d{2}-\d{2} \d{2}:\d{2})"/.exec(html.slice(0, 3000000));
+    var date = m ? m[1] : '';
+    if (!date) { m = /(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})/.exec(name); if (m) date = m[1] + '-' + m[2] + '-' + m[3] + ' ' + m[4] + ':' + m[5]; }
+    if (!date && lastModified) {
+      var d = new Date(lastModified), p = function (n) { return (n < 10 ? '0' : '') + n; };
+      date = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+    var kind = html.indexOf('__nos_saved_data__') >= 0 ? '操作できる版' : (/_static\.html?$/i.test(name) ? '見たまま版' : '');
+    return { title: title || name.replace(/\.html?$/i, ''), date: date, kind: kind };
+  }
+
+  // ---------- ブラウザ内保存 (IndexedDB) ----------
+  var db = null;
+  function openDb() {
+    return new Promise(function (res) {
+      try {
+        var rq = indexedDB.open('nos-viewer', 1);
+        rq.onupgradeneeded = function () { rq.result.createObjectStore('matches', { keyPath: 'id' }); };
+        rq.onsuccess = function () { db = rq.result; res(); };
+        rq.onerror = function () { res(); };
+      } catch (_) { res(); }
+    });
+  }
+  function dbAll() {
+    return new Promise(function (res) {
+      if (!db) return res([]);
+      try { var rq = db.transaction('matches').objectStore('matches').getAll(); rq.onsuccess = function () { res(rq.result || []); }; rq.onerror = function () { res([]); }; }
+      catch (_) { res([]); }
+    });
+  }
+  function dbPut(m) { try { if (db) db.transaction('matches', 'readwrite').objectStore('matches').put(m); } catch (_) {} }
+  function dbDel(id) { try { if (db) db.transaction('matches', 'readwrite').objectStore('matches').delete(id); } catch (_) {} }
+
+  // ---------- 読み込み ----------
+  function addFiles(files) {
+    files = Array.prototype.filter.call(files, function (f) { return /\.html?$/i.test(f.name); });
+    if (!files.length) { toast('.html のファイルが見つかりませんでした'); return; }
+    var added = 0, dup = 0, firstId = null;
+    Promise.all(files.map(function (f) {
+      return f.text().then(function (html) {
+        var id = hash(html);
+        if (matches.some(function (m) { return m.id === id; })) { dup++; return; }
+        var meta = parseMeta(f.name, html, f.lastModified);
+        var m = { id: id, name: f.name, title: meta.title, date: meta.date, kind: meta.kind, size: f.size, html: html };
+        matches.push(m); dbPut(m); added++;
+        if (!firstId) firstId = id;
+      });
+    })).then(function () {
+      sortMatches();
+      toast(added + '試合を読み込みました' + (dup ? '（' + dup + '件は読み込み済み）' : ''));
+      if (!currentId && firstId && isWide()) select(matches[0].id); else render();
+    });
+  }
+  function isWide() { return !window.matchMedia || window.matchMedia('(min-width: 761px)').matches; }
+  function sortMatches() { matches.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : a.name.localeCompare(b.name); }); }
+
+  // ---------- 表示 ----------
+  function render() {
+    var q = $('q').value.trim().toLowerCase();
+    var shown = matches.filter(function (m) { return !q || (m.title + ' ' + m.date + ' ' + m.name).toLowerCase().indexOf(q) >= 0; });
+    var html = '', lastDay = null;
+    shown.forEach(function (m) {
+      var day = (m.date || '').slice(0, 10) || '日付なし';
+      if (day !== lastDay) { html += '<div class="day">' + esc(day) + '</div>'; lastDay = day; }
+      html += '<div class="row" aria-current="' + (m.id === currentId) + '"><button class="item" data-id="' + m.id + '" title="' + esc(m.name) + '">' +
+        '<span class="t">' + esc(m.title) + '</span><span class="m">' + esc((m.date || '').slice(11)) + (m.kind ? '　' + esc(m.kind) : '') + '</span></button>' +
+        '<button class="del" data-del="' + m.id + '" title="一覧から外す">×</button></div>';
+    });
+    listEl.innerHTML = html || '<div class="emptylist">' + (matches.length ? '見つかりませんでした。' : '') + '</div>';
+    $('count').textContent = matches.length ? matches.length + '試合' : '';
+    var has = matches.length > 0;
+    $('aside').hidden = !has;
+    app.classList.toggle('nolist', !has);
+    var cur = byId(currentId);
+    $('welcome').hidden = has;
+    $('pick').hidden = !has || !!cur;
+    frame.hidden = !cur; $('bar').hidden = !cur;
+    app.classList.toggle('viewing', !!cur);
+  }
+  function byId(id) { for (var i = 0; i < matches.length; i++) if (matches[i].id === id) return matches[i]; return null; }
+  function select(id) {
+    var m = byId(id);
+    currentId = m ? m.id : null;
+    if (frameUrl) { URL.revokeObjectURL(frameUrl); frameUrl = null; }
+    if (m) {
+      frameUrl = URL.createObjectURL(new Blob([m.html], { type: 'text/html' }));
+      frame.src = frameUrl;
+      $('title').innerHTML = esc(m.title) + '<small>' + esc(m.date) + '・' + sizeText(m.size) + '</small>';
+      document.title = m.title + ' | NoS 戦歴ビューア';
+    } else {
+      frame.removeAttribute('src');
+      document.title = 'NoS 戦歴ビューア';
+    }
+    render();
+  }
+
+  // ---------- 操作 ----------
+  listEl.addEventListener('click', function (e) {
+    var d = e.target.closest('[data-del]');
+    if (d) {
+      var id = d.getAttribute('data-del'), m = byId(id);
+      if (m && confirm('「' + m.title + '」を一覧から外しますか？（元のファイルは消えません）')) {
+        matches = matches.filter(function (x) { return x.id !== id; }); dbDel(id);
+        if (currentId === id) select(null); else render();
+      }
+      return;
+    }
+    var b = e.target.closest('.item');
+    if (b) select(b.getAttribute('data-id'));
+  });
+  $('q').addEventListener('input', render);
+  $('back').addEventListener('click', function () { select(null); });
+  $('openTab').addEventListener('click', function () { if (frameUrl) window.open(frameUrl, '_blank'); });
+  $('addBtn').addEventListener('click', function () { $('fileIn').click(); });
+  $('pickFiles').addEventListener('click', function () { $('fileIn').click(); });
+  $('pickFolder').addEventListener('click', function () { $('dirIn').click(); });
+  $('fileIn').addEventListener('change', function () { addFiles(this.files); this.value = ''; });
+  $('dirIn').addEventListener('change', function () { addFiles(this.files); this.value = ''; });
+  var dragDepth = 0;
+  window.addEventListener('dragenter', function (e) { if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { dragDepth++; document.body.classList.add('dragging'); } });
+  window.addEventListener('dragleave', function () { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dragging'); } });
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('drop', function (e) {
+    e.preventDefault(); dragDepth = 0; document.body.classList.remove('dragging');
+    var items = e.dataTransfer.items, files = [], pending = [];
+    function walk(entry) {
+      if (!entry) return;
+      if (entry.isFile) pending.push(new Promise(function (r) { entry.file(function (f) { files.push(f); r(); }, function () { r(); }); }));
+      else if (entry.isDirectory) {
+        var rd = entry.createReader();
+        pending.push(new Promise(function (r) {
+          (function more() { rd.readEntries(function (es) { if (!es.length) return r(); es.forEach(walk); more(); }, function () { r(); }); })();
+        }));
+      }
+    }
+    if (items && items.length && items[0].webkitGetAsEntry) {
+      for (var i = 0; i < items.length; i++) walk(items[i].webkitGetAsEntry());
+      (function wait(n) { Promise.all(pending.slice(n)).then(function () { if (pending.length > n) wait(pending.length); else addFiles(files); }); })(0);
+    } else addFiles(e.dataTransfer.files);
+  });
+
+  // ---------- 起動 ----------
+  openDb().then(dbAll).then(function (saved) {
+    if (!db) $('storeNote').textContent = 'このブラウザでは試合を記憶できないため、次回もファイルを読み込んでください。ファイルがどこかに送られることはありません。';
+    matches = saved; sortMatches();
+    if (matches.length && isWide()) select(matches[0].id); else render();
+  });
+})();
+</script>
+</body>
+</html>
